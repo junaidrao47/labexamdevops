@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-lab-mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-lab-mongo
+  template:
+    metadata:
+      labels:
+        app: kube-lab-mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:6.0
+          ports:
+            - containerPort: 27017
+          args:
+            - --bind_ip_all
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-lab-mongo
+spec:
+  selector:
+    app: kube-lab-mongo
+  ports:
+    - port: 27017
+      targetPort: 27017

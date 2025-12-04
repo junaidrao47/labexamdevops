@@ -16,4 +16,15 @@ spec:
         - name: kube-lab-container
           image: kube-lab-app:v1
           ports:
-            - containerPort: 8080
+            - containerPort: 5000
+          env:
+            - name: MONGO_HOST
+              value: kube-lab-mongo
+            - name: MONGO_PORT
+              value: "27017"
+            - name: MONGO_DB_NAME
+              value: library
+            - name: REDIS_HOST
+              value: kube-lab-redis
+            - name: REDIS_PORT
+              value: "6379"

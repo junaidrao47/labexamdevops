@@ -42,10 +42,10 @@ This guide walks through the entire lab scenario step by step, from building a s
    ```bash
    docker build -t kube-lab-app:v1 .
    ```
-2. Run the container locally:
-   ```bash
-   docker run --rm -p 8080:8080 kube-lab-app:v1
-   ```
+2. Run the container locally (map host 8080 to the app’s internal 5000):
+  ```bash
+  docker run --rm -p 8080:5000 kube-lab-app:v1
+  ```
 3. Test in another terminal:
    ```bash
    curl http://localhost:8080
@@ -100,7 +100,7 @@ spec:
         - name: kube-lab-container
           image: kube-lab-app:v1
           ports:
-            - containerPort: 8080
+            - containerPort: 5000
 ```
 
 ### `k8s/service.yaml`
@@ -115,7 +115,7 @@ spec:
     app: kube-lab
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 5000
       nodePort: 30080   # Any free port in 30000-32767
 ```
 
@@ -324,13 +324,13 @@ kubectl exec -it <pod> -- env | grep APP_ENV
 livenessProbe:
   httpGet:
     path: /
-    port: 8080
+    port: 5000
   initialDelaySeconds: 3
   periodSeconds: 5
 readinessProbe:
   httpGet:
     path: /
-    port: 8080
+    port: 5000
   initialDelaySeconds: 3
   periodSeconds: 5
 ```
