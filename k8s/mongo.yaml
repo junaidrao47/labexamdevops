@@ -1,32 +1,110 @@
+# ============================================
+# MongoDB Deployment and Service
+# Best Practices: PVC for persistence, Security, Resources
+# ============================================
+
+---
+# Persistent Volume Claim for MongoDB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  labels:
+    app: node-redis-mongo
+    component: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # storageClassName: standard  # Uncomment for cloud providers
+
+---
+# MongoDB Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kube-lab-mongo
+  name: node-redis-mongo-mongo
+  labels:
+    app: node-redis-mongo
+    component: mongodb
+    tier: database
 spec:
   replicas: 1
+  strategy:
+    type: Recreate  # Important for databases with persistent storage
   selector:
     matchLabels:
-      app: kube-lab-mongo
+      app: node-redis-mongo
+      component: mongodb
   template:
     metadata:
       labels:
-        app: kube-lab-mongo
+        app: node-redis-mongo
+        component: mongodb
+        tier: database
     spec:
       containers:
         - name: mongo
           image: mongo:6.0
           ports:
-            - containerPort: 27017
+            - name: mongo
+              containerPort: 27017
+              protocol: TCP
           args:
             - --bind_ip_all
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+
 ---
+# MongoDB Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-lab-mongo
+  name: node-redis-mongo-mongo
+  labels:
+    app: node-redis-mongo
+    component: mongodb
 spec:
+  type: ClusterIP
   selector:
-    app: kube-lab-mongo
+    app: node-redis-mongo
+    component: mongodb
   ports:
-    - port: 27017
+    - name: mongo
+      port: 27017
       targetPort: 27017
+      protocol: TCP

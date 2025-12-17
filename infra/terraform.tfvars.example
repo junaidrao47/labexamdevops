@@ -1,0 +1,45 @@
+# Example variables file (safe to commit)
+# Copy to terraform.tfvars and edit for your AWS account.
+
+project_name = "node-redis-mongo"
+environment  = "dev"
+owner        = "junaidrao47"
+aws_region   = "us-east-1"
+
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
+
+enable_nat_gateway = true
+single_nat_gateway = true
+
+# RECOMMENDED: lock these to your public IP (example: ["203.0.113.10/32"])
+allowed_k8s_api_cidrs  = ["0.0.0.0/0"]
+allowed_ssh_cidrs      = ["0.0.0.0/0"]
+allowed_nodeport_cidrs = ["0.0.0.0/0"]
+
+# EKS (default)
+use_ec2_fallback     = false
+cluster_name         = "node-redis-mongo-cluster"
+cluster_version      = "1.28"
+node_instance_types  = ["t3.medium"]
+node_desired_size    = 2
+node_min_size        = 1
+node_max_size        = 4
+
+# EC2 fallback (only used if use_ec2_fallback=true)
+ec2_instance_type = "t3.medium"
+ec2_key_name      = ""  # Your existing EC2 key pair name
+
+# RDS (PostgreSQL)
+create_rds           = true
+db_instance_class    = "db.t3.micro"
+db_name              = "nodeapp"
+db_username          = "admin"
+# db_password        = "CHANGE_ME"  # Optional; if empty Terraform auto-generates and stores in Secrets Manager
+
+db_allocated_storage = 20
+
+# S3 bucket
+create_s3_bucket = true
+# s3_bucket_name = "my-unique-bucket-name"  # Optional; if empty Terraform auto-generates

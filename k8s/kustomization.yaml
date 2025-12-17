@@ -1,0 +1,40 @@
+# ============================================
+# Kustomization for Easy Deployment
+# Usage: kubectl apply -k k8s/
+# ============================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: node-redis-mongo
+
+# Common labels applied to all resources (updated syntax)
+labels:
+  - pairs:
+      app: node-redis-mongo
+      managed-by: kustomize
+
+# Resources to include
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - mongo.yaml
+  - redis.yaml
+  - deployment.yaml
+  - service.yaml
+  # - ingress.yaml  # Uncomment if ingress controller is installed
+
+# Namespace for all resources (override with -n flag if needed)
+# namespace: dev
+
+# Images - easily override in CI/CD
+images:
+  - name: ghcr.io/junaidrao47/labexamdevops
+    newTag: latest
+
+# ConfigMap generator (alternative to static configmaps)
+# configMapGenerator:
+#   - name: app-config
+#     literals:
+#       - NODE_ENV=development

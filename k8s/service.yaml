@@ -1,12 +1,46 @@
+# ============================================
+# Application Service - Exposes the Node.js app
+# Best Practices: Labels, Named ports
+# ============================================
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-lab-service
+  name: node-redis-mongo-app
+  labels:
+    app: node-redis-mongo
+    component: backend
+    tier: application
+  annotations:
+    description: "Service for Node.js application"
 spec:
   type: NodePort
   selector:
-    app: kube-lab
+    app: node-redis-mongo
+    component: backend
   ports:
-    - port: 8080
+    - name: http
+      port: 80
       targetPort: 5000
-      nodePort: 30080
+      nodePort: 30500
+      protocol: TCP
+
+---
+# ClusterIP Service (for internal access only)
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-redis-mongo-app-internal
+  labels:
+    app: node-redis-mongo
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: node-redis-mongo
+    component: backend
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP
+

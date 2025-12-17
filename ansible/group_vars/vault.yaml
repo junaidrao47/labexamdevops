@@ -1,0 +1,62 @@
+# ============================================
+# Ansible Vault - Secrets
+# DevOps Lab Exam - Node-Redis-Mongo Project
+# ============================================
+# 
+# IMPORTANT: This file contains sensitive data
+# In production, encrypt with: ansible-vault encrypt vault.yaml
+# 
+# To encrypt: ansible-vault encrypt vault.yaml
+# To edit: ansible-vault edit vault.yaml
+# To view: ansible-vault view vault.yaml
+# ============================================
+
+---
+# =========================================
+# Database Credentials
+# =========================================
+vault_mongodb_password: "changeme_mongodb_password_123"
+vault_mongodb_root_password: "changeme_root_password_456"
+
+# =========================================
+# Redis Credentials
+# =========================================
+vault_redis_password: "changeme_redis_password_789"
+
+# =========================================
+# Application Secrets
+# =========================================
+vault_jwt_secret: "changeme_jwt_secret_very_long_string_here"
+vault_api_key: "changeme_api_key_for_external_services"
+vault_session_secret: "changeme_session_secret_string"
+
+# =========================================
+# AWS Credentials (if needed)
+# =========================================
+vault_aws_access_key: ""
+vault_aws_secret_key: ""
+
+# =========================================
+# Docker Registry Credentials
+# =========================================
+vault_docker_registry_user: ""
+vault_docker_registry_password: ""
+
+# =========================================
+# SSH Key Paths
+# =========================================
+vault_ssh_private_key_path: "~/.ssh/id_rsa"
+vault_ssh_public_key_path: "~/.ssh/id_rsa.pub"
+
+# =========================================
+# SSL/TLS Certificates
+# =========================================
+vault_ssl_certificate: |
+  -----BEGIN CERTIFICATE-----
+  # Your SSL certificate here
+  -----END CERTIFICATE-----
+
+vault_ssl_private_key: |
+  -----BEGIN PRIVATE KEY-----
+  # Your private key here
+  -----END PRIVATE KEY-----

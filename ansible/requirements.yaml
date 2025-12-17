@@ -1,0 +1,38 @@
+# ============================================
+# Ansible Requirements - Collections & Roles
+# DevOps Lab Exam - Node-Redis-Mongo Project
+# ============================================
+# 
+# Install with: ansible-galaxy install -r requirements.yaml
+# ============================================
+
+---
+collections:
+  # Community General - timezone, npm, etc.
+  - name: community.general
+    version: ">=8.0.0"
+    
+  # Docker collection for container management
+  - name: community.docker
+    version: ">=3.4.0"
+    
+  # POSIX collection for firewall, etc.
+  - name: ansible.posix
+    version: ">=1.5.0"
+    
+  # AWS collection (if managing AWS resources)
+  - name: amazon.aws
+    version: ">=7.0.0"
+    
+  # Kubernetes collection (if managing K8s)
+  - name: kubernetes.core
+    version: ">=3.0.0"
+
+roles:
+  # Geerlingguy roles (optional - well-maintained community roles)
+  # - name: geerlingguy.docker
+  #   version: "6.1.0"
+  # - name: geerlingguy.nodejs
+  #   version: "6.0.0"
+  # - name: geerlingguy.pip
+  #   version: "2.2.0"

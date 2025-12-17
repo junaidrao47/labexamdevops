@@ -1,0 +1,150 @@
+# ============================================
+# ConfigMaps for Application Configuration
+# Best Practices: Environment-specific configs, Clear naming
+# ============================================
+
+---
+# Development ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: dev
+  labels:
+    app: node-redis-mongo
+    environment: development
+  annotations:
+    description: "Configuration for Node.js application in development"
+data:
+  # Application Configuration
+  NODE_ENV: "development"
+  APP_NAME: "node-redis-mongo"
+  APP_VERSION: "1.0.0"
+  LOG_LEVEL: "debug"
+  
+  # MongoDB Configuration
+  MONGO_HOST: "node-redis-mongo-mongo"
+  MONGO_PORT: "27017"
+  
+  # Redis Configuration
+  REDIS_HOST: "node-redis-mongo-redis"
+  REDIS_PORT: "6379"
+  REDIS_CACHE_TTL: "300"
+  
+  # Server Configuration
+  PORT: "5000"
+  API_PREFIX: "/api"
+  
+  # Feature Flags
+  ENABLE_METRICS: "true"
+  ENABLE_CACHE: "true"
+
+---
+# Production ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: prod
+  labels:
+    app: node-redis-mongo
+    environment: production
+  annotations:
+    description: "Configuration for Node.js application in production"
+data:
+  # Application Configuration
+  NODE_ENV: "production"
+  APP_NAME: "node-redis-mongo"
+  APP_VERSION: "1.0.0"
+  LOG_LEVEL: "info"
+  
+  # MongoDB Configuration
+  MONGO_HOST: "node-redis-mongo-mongo"
+  MONGO_PORT: "27017"
+  
+  # Redis Configuration
+  REDIS_HOST: "node-redis-mongo-redis"
+  REDIS_PORT: "6379"
+  REDIS_CACHE_TTL: "600"
+  
+  # Server Configuration
+  PORT: "5000"
+  API_PREFIX: "/api"
+  
+  # Feature Flags
+  ENABLE_METRICS: "true"
+  ENABLE_CACHE: "true"
+
+---
+# Prometheus ConfigMap (for monitoring configuration)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: dev
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'node-redis-mongo'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: node-redis-mongo
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+
+---
+# Prometheus ConfigMap for Production
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: prod
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'node-redis-mongo'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: node-redis-mongo
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__

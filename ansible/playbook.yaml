@@ -1,0 +1,330 @@
+# ============================================
+# Main Ansible Playbook
+# DevOps Lab Exam - Node-Redis-Mongo Project
+# ============================================
+# 
+# This playbook configures web servers with:
+# - Docker and Docker Compose
+# - Node.js runtime
+# - Application deployment
+# - Monitoring agents
+# ============================================
+
+---
+- name: Configure Application Servers
+  hosts: webservers
+  become: true
+  gather_facts: true
+  
+  vars:
+    app_name: node-redis-mongo
+    app_user: nodejs
+    app_group: nodejs
+    app_port: 5000
+    node_version: "18"
+    docker_compose_version: "2.24.0"
+    app_home: /opt/{{ app_name }}
+    github_repo: "https://github.com/junaidrao47/labexamdevops.git"
+    
+  pre_tasks:
+    - name: Update package cache
+      ansible.builtin.yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+      
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+  tasks:
+    # =========================================
+    # System Preparation
+    # =========================================
+    - name: Install required system packages
+      ansible.builtin.package:
+        name:
+          - git
+          - curl
+          - wget
+          - unzip
+          - htop
+          - vim
+          - jq
+        state: present
+
+    - name: Set timezone to UTC
+      community.general.timezone:
+        name: UTC
+
+    # =========================================
+    # Docker Installation
+    # =========================================
+    - name: Install Docker dependencies (Amazon Linux)
+      ansible.builtin.yum:
+        name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Add Docker repository (Amazon Linux)
+      ansible.builtin.shell: |
+        amazon-linux-extras install docker -y
+      args:
+        creates: /usr/bin/docker
+      when: ansible_distribution == "Amazon"
+
+    - name: Install Docker (Ubuntu/Debian)
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-plugin
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Start and enable Docker service
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group
+      ansible.builtin.user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    # =========================================
+    # Node.js Installation
+    # =========================================
+    - name: Install Node.js repository
+      ansible.builtin.shell: |
+        curl -fsSL https://rpm.nodesource.com/setup_{{ node_version }}.x | bash -
+      args:
+        creates: /etc/yum.repos.d/nodesource-el*.repo
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Node.js
+      ansible.builtin.package:
+        name: nodejs
+        state: present
+
+    - name: Install PM2 globally
+      community.general.npm:
+        name: pm2
+        global: yes
+        state: present
+
+    # =========================================
+    # Application User & Directory Setup
+    # =========================================
+    - name: Create application group
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        state: present
+
+    - name: Create application user
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        home: "{{ app_home }}"
+        shell: /bin/bash
+        create_home: yes
+        system: yes
+
+    - name: Create application directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+      loop:
+        - "{{ app_home }}"
+        - "{{ app_home }}/logs"
+        - "{{ app_home }}/config"
+        - "{{ app_home }}/data"
+
+    # =========================================
+    # Application Deployment
+    # =========================================
+    - name: Clone application repository
+      ansible.builtin.git:
+        repo: "{{ github_repo }}"
+        dest: "{{ app_home }}/app"
+        version: main
+        force: yes
+      become_user: "{{ app_user }}"
+
+    - name: Install npm dependencies
+      community.general.npm:
+        path: "{{ app_home }}/app/node-redis-mongo"
+        state: present
+      become_user: "{{ app_user }}"
+
+    # =========================================
+    # Environment Configuration
+    # =========================================
+    - name: Create environment file
+      ansible.builtin.template:
+        src: templates/env.j2
+        dest: "{{ app_home }}/app/node-redis-mongo/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
+
+    # =========================================
+    # Docker Compose Deployment
+    # =========================================
+    - name: Start application with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_home }}/app/node-redis-mongo"
+        state: present
+      become_user: "{{ app_user }}"
+      register: docker_compose_result
+      ignore_errors: yes
+
+    # =========================================
+    # Firewall Configuration
+    # =========================================
+    - name: Configure firewall for application port
+      ansible.posix.firewalld:
+        port: "{{ app_port }}/tcp"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      when: ansible_os_family == "RedHat"
+      ignore_errors: yes
+
+    # =========================================
+    # Health Check
+    # =========================================
+    - name: Wait for application to be available
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/api/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.service:
+        name: docker
+        state: restarted
+
+    - name: Restart application
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_home }}/app/node-redis-mongo"
+        state: restarted
+      become_user: "{{ app_user }}"
+
+  post_tasks:
+    - name: Display deployment status
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          Deployment Complete!
+          ========================================
+          Application: {{ app_name }}
+          Host: {{ inventory_hostname }}
+          Port: {{ app_port }}
+          User: {{ app_user }}
+          Path: {{ app_home }}
+          Health Check: {{ health_check.status | default('pending') }}
+          ========================================
+
+# ============================================
+# Monitoring Setup Play
+# ============================================
+- name: Configure Monitoring
+  hosts: webservers
+  become: true
+  gather_facts: true
+  
+  vars:
+    node_exporter_version: "1.7.0"
+    
+  tasks:
+    - name: Download Node Exporter
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        dest: /tmp/node_exporter.tar.gz
+        mode: '0644'
+
+    - name: Extract Node Exporter
+      ansible.builtin.unarchive:
+        src: /tmp/node_exporter.tar.gz
+        dest: /opt/
+        remote_src: yes
+        creates: /opt/node_exporter-{{ node_exporter_version }}.linux-amd64
+
+    - name: Create Node Exporter symlink
+      ansible.builtin.file:
+        src: /opt/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter
+        dest: /usr/local/bin/node_exporter
+        state: link
+
+    - name: Create Node Exporter systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Node Exporter
+          After=network.target
+
+          [Service]
+          User=nobody
+          ExecStart=/usr/local/bin/node_exporter
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Start Node Exporter
+      ansible.builtin.systemd:
+        name: node_exporter
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+# ============================================
+# Local Development Play
+# ============================================
+- name: Local Development Setup
+  hosts: local
+  connection: local
+  become: false
+  gather_facts: true
+  
+  vars:
+    app_name: node-redis-mongo
+    
+  tasks:
+    - name: Check Docker is running
+      ansible.builtin.command: docker info
+      register: docker_info
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display Docker status
+      ansible.builtin.debug:
+        msg: "Docker is {{ 'running' if docker_info.rc == 0 else 'not running' }}"
+
+    - name: Display local setup info
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          Local Development Environment
+          ========================================
+          Project: {{ app_name }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Python: {{ ansible_python_version }}
+          ========================================

@@ -598,6 +598,155 @@ Development → Staging → Production
 
 ---
 
+## ☁️ Terraform Infrastructure (AWS)
+
+### Infrastructure Overview
+
+The Terraform configuration provisions a complete AWS environment for the application:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        AWS Cloud                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │                VPC (10.0.0.0/16)                      │  │
+│  │  ┌─────────────────┐     ┌─────────────────┐         │  │
+│  │  │ Public Subnet 1 │     │ Public Subnet 2 │         │  │
+│  │  │   10.0.1.0/24   │     │   10.0.2.0/24   │         │  │
+│  │  │   EC2 Instance  │     │   NAT Gateway   │         │  │
+│  │  └─────────────────┘     └─────────────────┘         │  │
+│  │  ┌─────────────────┐     ┌─────────────────┐         │  │
+│  │  │ Private Subnet 1│     │ Private Subnet 2│         │  │
+│  │  │   10.0.10.0/24  │     │   10.0.20.0/24  │         │  │
+│  │  │   EKS Nodes     │     │   RDS Database  │         │  │
+│  │  └─────────────────┘     └─────────────────┘         │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌─────────────────┐  ┌─────────────────┐                   │
+│  │   S3 Bucket     │  │ Secrets Manager │                   │
+│  │   Artifacts     │  │   Credentials   │                   │
+│  └─────────────────┘  └─────────────────┘                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Terraform Files Structure
+
+```
+infra/
+├── main.tf              # Provider configuration
+├── variables.tf         # Input variables
+├── terraform.tfvars     # Variable values
+├── vpc.tf               # VPC, subnets, routing
+├── security-groups.tf   # Security groups
+├── eks.tf               # EKS cluster (optional)
+├── ec2.tf               # EC2 fallback
+├── rds.tf               # RDS database
+├── s3.tf                # S3 bucket
+└── outputs.tf           # Output values
+```
+
+### Resources Created
+
+| Resource | Description |
+|----------|-------------|
+| VPC | 10.0.0.0/16 CIDR with DNS support |
+| Subnets | 2 public + 2 private across AZs |
+| NAT Gateway | Single NAT for cost savings |
+| Security Groups | EKS, nodes, app, database, cache |
+| EC2 Instance | t3.micro with Docker pre-installed |
+| S3 Bucket | Versioned storage with lifecycle rules |
+| Secrets Manager | Secure credential storage |
+
+### Deployment Commands
+
+```bash
+cd infra/
+terraform init        # Initialize providers
+terraform validate    # Validate configuration
+terraform plan        # Preview changes
+terraform apply       # Deploy infrastructure
+terraform destroy     # Clean up resources
+```
+
+### Sample Outputs
+
+```
+vpc_id = "vpc-041c9b00ad7fd5d44"
+ec2_public_ip = "52.221.212.142"
+s3_bucket_name = "node-redis-mongo-storage-dev-350063aa"
+nat_gateway_ips = ["54.255.137.225"]
+```
+
+---
+
+## 🔧 Ansible Configuration Management
+
+### Ansible Overview
+
+Ansible automates server configuration and application deployment:
+
+```
+ansible/
+├── ansible.cfg          # Ansible configuration
+├── hosts.ini            # Inventory file
+├── playbook.yaml        # Main playbook
+├── requirements.yaml    # Galaxy dependencies
+├── README.md            # Documentation
+├── group_vars/
+│   ├── all.yaml         # Global variables
+│   └── vault.yaml       # Encrypted secrets
+└── templates/
+    └── env.j2           # Environment template
+```
+
+### Playbook Tasks
+
+1. **System Preparation**
+   - Update packages
+   - Install dependencies
+   - Set timezone
+
+2. **Docker Installation**
+   - Install Docker & Compose
+   - Configure user permissions
+   - Start Docker service
+
+3. **Application Deployment**
+   - Clone Git repository
+   - Install npm dependencies
+   - Configure environment
+   - Start with Docker Compose
+
+4. **Monitoring Setup**
+   - Install Node Exporter
+   - Configure Prometheus scraping
+
+### Inventory Groups
+
+| Group | Purpose |
+|-------|---------|
+| webservers | Application servers |
+| dbservers | Database servers |
+| cacheservers | Redis cache |
+| monitoring | Prometheus/Grafana |
+| local | Development testing |
+
+### Usage Commands
+
+```bash
+# Test connectivity
+ansible all -m ping
+
+# Dry run
+ansible-playbook playbook.yaml --check
+
+# Deploy
+ansible-playbook playbook.yaml
+
+# With vault
+ansible-playbook playbook.yaml --ask-vault-pass
+```
+
+---
+
 ## 📊 Metrics & KPIs
 
 ### Technical Metrics

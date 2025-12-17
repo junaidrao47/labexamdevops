@@ -1,42 +1,134 @@
+# ============================================
+# Node.js Application Deployment
+# Best Practices: Labels, Probes, Resources, Security
+# ============================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kube-lab-deployment
+  name: node-redis-mongo-app
+  labels:
+    app: node-redis-mongo
+    component: backend
+    tier: application
+  annotations:
+    description: "Node.js application with Redis caching and MongoDB"
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
-      app: kube-lab
+      app: node-redis-mongo
+      component: backend
   template:
     metadata:
       labels:
-        app: kube-lab-broken   # temporary typo
+        app: node-redis-mongo
+        component: backend
+        tier: application
     spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      
+      # Graceful termination
+      terminationGracePeriodSeconds: 30
+      
       containers:
-        - name: kube-lab-container
-          image: kube-lab-app:v1
+        - name: node-redis-mongo
+          image: ghcr.io/junaidrao47/labexamdevops:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 5000
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          
+          # Environment variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: app-config
+          
+          # Sensitive environment variables from Secret
           env:
             - name: MONGO_HOST
-              value: kube-lab-mongo
-            - name: MONGO_PORT
-              value: "27017"
-            - name: MONGO_DB_NAME
-              value: library
-            - name: REDIS_HOST
-              value: kube-lab-redis
-            - name: REDIS_PORT
-              value: "6379"
-            - name: APP_ENV
               valueFrom:
                 configMapKeyRef:
                   name: app-config
-                  key: APP_ENV
+                  key: MONGO_HOST
+            - name: MONGO_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: MONGO_PORT
+            - name: MONGO_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MONGO_DB_NAME
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: REDIS_PORT
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: NODE_ENV
+          
+          # Resource management
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
             limits:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "500m"
+              memory: "512Mi"
+          
+          # Liveness probe - restart container if unhealthy
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # Readiness probe - don't send traffic until ready
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          # Startup probe - for slow starting containers
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
+          
+          # Security context for container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL

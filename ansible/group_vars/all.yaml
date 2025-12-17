@@ -1,0 +1,105 @@
+# ============================================
+# Ansible Group Variables - All Hosts
+# DevOps Lab Exam - Node-Redis-Mongo Project
+# ============================================
+
+---
+# =========================================
+# General Settings
+# =========================================
+project_name: node-redis-mongo
+environment: dev
+owner: junaidrao47
+
+# =========================================
+# Application Settings
+# =========================================
+app_name: "{{ project_name }}"
+app_port: 5000
+app_user: nodejs
+app_group: nodejs
+app_home: "/opt/{{ app_name }}"
+
+# =========================================
+# Node.js Settings
+# =========================================
+node_version: "18"
+npm_version: "latest"
+
+# =========================================
+# Docker Settings
+# =========================================
+docker_compose_version: "2.24.0"
+docker_network: "{{ app_name }}_network"
+
+# =========================================
+# MongoDB Settings
+# =========================================
+mongodb_version: "6.0"
+mongodb_host: mongodb
+mongodb_port: 27017
+mongodb_database: nodeapp
+mongodb_user: admin
+# mongodb_password should be in vault
+
+# =========================================
+# Redis Settings
+# =========================================
+redis_version: "7.0"
+redis_host: redis
+redis_port: 6379
+# redis_password should be in vault
+
+# =========================================
+# Monitoring Settings
+# =========================================
+metrics_enabled: true
+metrics_port: 9090
+node_exporter_port: 9100
+prometheus_port: 9091
+grafana_port: 3000
+
+# =========================================
+# Logging Settings
+# =========================================
+log_level: info
+log_format: json
+log_path: "/var/log/{{ app_name }}"
+
+# =========================================
+# Security Settings
+# =========================================
+cors_origin: "*"
+# jwt_secret should be in vault
+
+# =========================================
+# GitHub Settings
+# =========================================
+github_repo: "https://github.com/junaidrao47/labexamdevops.git"
+github_branch: main
+
+# =========================================
+# Package Dependencies
+# =========================================
+system_packages:
+  - git
+  - curl
+  - wget
+  - unzip
+  - htop
+  - vim
+  - jq
+  - net-tools
+  - telnet
+
+# =========================================
+# Firewall Ports
+# =========================================
+firewall_ports:
+  - "{{ app_port }}/tcp"
+  - "{{ mongodb_port }}/tcp"
+  - "{{ redis_port }}/tcp"
+  - "{{ node_exporter_port }}/tcp"
+  - "22/tcp"
+  - "80/tcp"
+  - "443/tcp"
