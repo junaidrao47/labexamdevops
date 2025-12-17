@@ -353,6 +353,118 @@ docker-compose exec redis redis-cli info memory
 - [Prometheus Monitoring Guide](https://prometheus.io/docs/guides/node-exporter/)
 - [Grafana Dashboard Creation](https://grafana.com/docs/grafana/latest/dashboards/)
 - [GitHub Actions CI/CD](https://docs.github.com/en/actions)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+- [Ansible Documentation](https://docs.ansible.com/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+
+---
+
+## ☁️ Terraform Infrastructure (AWS)
+
+Deploy complete AWS infrastructure using Terraform:
+
+```bash
+cd infra/
+terraform init
+terraform plan
+terraform apply
+```
+
+### Resources Created
+- VPC with public/private subnets across 2 AZs
+- NAT Gateway for private subnet internet access
+- Security Groups (EKS, nodes, app, database, cache)
+- EC2 instance with Docker pre-installed (fallback)
+- S3 bucket with versioning and lifecycle rules
+- Optional: EKS cluster and RDS PostgreSQL
+
+### Configuration
+Edit `infra/terraform.tfvars` to customize:
+```hcl
+project_name = "node-redis-mongo"
+environment  = "dev"
+aws_region   = "ap-southeast-1"
+```
+
+---
+
+## 🔧 Ansible Configuration Management
+
+Automate server configuration with Ansible:
+
+```bash
+cd ansible/
+
+# Test connectivity
+ansible all -m ping
+
+# Run playbook
+ansible-playbook playbook.yaml
+```
+
+### Playbook Tasks
+1. Install Docker and Docker Compose
+2. Install Node.js 18.x
+3. Clone and deploy application
+4. Configure monitoring (Node Exporter)
+5. Set up firewall rules
+
+### Inventory
+Edit `ansible/hosts.ini` with your target servers.
+
+---
+
+## ☸️ Kubernetes Deployment
+
+Deploy to Kubernetes (Minikube or EKS):
+
+```bash
+cd k8s/
+
+# Create namespace and resources
+kubectl apply -f namespace.yaml
+kubectl apply -f configmap.yaml
+kubectl apply -f secret.yaml
+kubectl apply -f mongo.yaml
+kubectl apply -f redis.yaml
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f hpa.yaml
+
+# Check status
+kubectl get pods -n dev
+kubectl get svc -n dev
+```
+
+### Manifests
+| File | Purpose |
+|------|---------|
+| `namespace.yaml` | Dev/Prod namespaces with ResourceQuota |
+| `configmap.yaml` | Application configuration |
+| `secret.yaml` | Encoded secrets |
+| `deployment.yaml` | App deployment with probes |
+| `service.yaml` | NodePort and ClusterIP services |
+| `hpa.yaml` | Horizontal Pod Autoscaler |
+
+---
+
+## 🚀 CI/CD Pipeline
+
+The GitHub Actions pipeline includes:
+
+| Stage | Description |
+|-------|-------------|
+| 🧪 **Lint & Test** | ESLint + Jest tests with MongoDB/Redis |
+| 🔒 **Security Scan** | Trivy vulnerability scanner |
+| 🐳 **Build & Push** | Multi-platform Docker image to GHCR |
+| 🏗️ **Terraform Plan** | Infrastructure validation |
+| 📋 **Ansible Lint** | Playbook syntax check |
+| 🔥 **Smoke Tests** | API endpoint validation |
+| 🚀 **Deploy to K8s** | Kubernetes deployment (manual) |
+
+View pipeline at: [GitHub Actions](../../actions)
+
+---
 
 ## 🤝 Contributing
 
@@ -370,11 +482,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 DevOps Best Practices Demonstrated
 
-✅ **Infrastructure as Code** - Docker Compose configuration  
-✅ **CI/CD Pipeline** - GitHub Actions workflow  
+✅ **Infrastructure as Code** - Terraform + Docker Compose  
+✅ **Configuration Management** - Ansible playbooks  
+✅ **Container Orchestration** - Kubernetes manifests  
+✅ **CI/CD Pipeline** - GitHub Actions (7 stages)  
 ✅ **Monitoring & Observability** - Prometheus + Grafana  
-✅ **Container Security** - Health checks, restart policies  
-✅ **Data Persistence** - Named volumes for databases  
-✅ **Testing Strategy** - Unit, integration, and API tests  
-✅ **Code Quality** - ESLint, automated testing  
-✅ **Documentation** - Comprehensive README and comments
+✅ **Container Security** - Multistage builds, non-root user  
+✅ **Data Persistence** - PVCs and named volumes  
+✅ **Testing Strategy** - Unit, integration, smoke tests  
+✅ **Security Scanning** - Trivy, npm audit  
+✅ **Documentation** - Comprehensive README and reports
