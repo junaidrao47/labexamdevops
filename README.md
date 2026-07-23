@@ -1,58 +1,55 @@
-# 🚀 DevOps Lab Exam - Node.js Redis MongoDB Application
+# 🚀 DevOps CI/CD Pipeline — Node.js, Redis, MongoDB on Kubernetes (AWS EKS)
 
-> **Complete DevOps Implementation Guide**  
-> Student: Junaid Rao | Repository: [labexamdevops](https://github.com/junaidrao47/labexamdevops)
+> A hands-on DevOps project where I built a full deployment pipeline for a Node.js + MongoDB + Redis application — from a multistage Docker image, through Terraform-provisioned AWS infrastructure and Ansible configuration, to Kubernetes manifests and a GitHub Actions CI/CD pipeline with Prometheus/Grafana monitoring.
+>
+> **Author:** Junaid Rao ([@junaidrao47](https://github.com/junaidrao47))
+> **Repo:** [devops-cicd-terraform-eks](https://github.com/junaidrao47/devops-cicd-terraform-eks)
 
 ---
 
 ## 📋 Table of Contents
 
-1. [Project Overview](#-project-overview)
-2. [Architecture Diagram](#-architecture-diagram)
-3. [Step 1: Containerization (Dockerfile)](#-step-1-containerization)
-4. [Step 2: Terraform Infrastructure (AWS)](#%EF%B8%8F-step-2-terraform-infrastructure-aws)
-5. [Step 4: Ansible Configuration Management](#-step-4-ansible-configuration-management)
-6. [Step 5: Kubernetes Deployment](#%EF%B8%8F-step-5-kubernetes-deployment)
-7. [Step 6: CI/CD Pipeline](#-step-6-cicd-pipeline)
-8. [Step 7: Monitoring (Prometheus + Grafana)](#-step-7-monitoring)
-9. [Step 8: Documentation](#-step-8-documentation)
-10. [Quick Start Guide](#-quick-start-guide)
+1. [Why I Built This](#-why-i-built-this)
+2. [Tech Stack](#-tech-stack)
+3. [Architecture](#-architecture)
+4. [Containerization](#-containerization)
+5. [Infrastructure as Code (Terraform)](#️-infrastructure-as-code-terraform)
+6. [Configuration Management (Ansible)](#-configuration-management-ansible)
+7. [Kubernetes Deployment](#️-kubernetes-deployment)
+8. [CI/CD Pipeline](#-cicd-pipeline)
+9. [Monitoring (Prometheus + Grafana)](#-monitoring)
+10. [Quick Start](#-quick-start)
 11. [API Reference](#-api-reference)
 12. [Troubleshooting](#-troubleshooting)
+13. [What I Learned / Next Steps](#-what-i-learned--next-steps)
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Why I Built This
 
-This project demonstrates a **production-ready DevOps implementation** for a Node.js application with:
+I wanted a project that goes beyond a "hello world" app and actually exercises the full DevOps lifecycle end to end — writing the app, containerizing it properly, provisioning real cloud infrastructure, automating configuration, deploying to Kubernetes, and wiring up CI/CD and monitoring, all in one coherent repo.
 
-| Component | Technology |
-|-----------|------------|
+Rather than just following a tutorial, I treated this like a small production system: non-root containers, health checks, resource limits, autoscaling, a multi-stage pipeline with security scanning, and dashboards to actually observe what's running.
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
 | **Backend** | Node.js 18 + Express.js |
 | **Database** | MongoDB 6.0 |
 | **Cache** | Redis 7.0 |
-| **Container** | Docker + Docker Compose |
-| **Orchestration** | Kubernetes (Minikube/EKS) |
-| **Infrastructure** | Terraform (AWS) |
-| **Configuration** | Ansible |
+| **Containerization** | Docker + Docker Compose |
+| **Orchestration** | Kubernetes (Minikube locally / EKS-ready) |
+| **Infrastructure as Code** | Terraform (AWS) |
+| **Configuration Management** | Ansible |
 | **CI/CD** | GitHub Actions |
 | **Monitoring** | Prometheus + Grafana |
 
-### Exam Scoring (50 Marks Total)
-
-| Step | Component | Marks | Status |
-|------|-----------|-------|--------|
-| 1 | Containerization | ✅ | Done |
-| 2 | Terraform Infrastructure | 10 | Done |
-| 4 | Ansible Configuration | 5 | Done |
-| 5 | Kubernetes Deployment | 10 | Done |
-| 6 | CI/CD Pipeline | 10 | Done |
-| 7 | Monitoring Screenshots | 10 | Done |
-| 8 | Documentation | 5 | Done |
-
 ---
 
-## 🏗️ Architecture Diagram
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -122,11 +119,13 @@ This project demonstrates a **production-ready DevOps implementation** for a Nod
 
 ---
 
-## 🐳 Step 1: Containerization
+## 🐳 Containerization
 
 ### Dockerfile (Multistage Build)
 
 **Location:** `Dockerfile`
+
+Design choices: a build stage that installs only production dependencies, a slim Alpine runtime stage, a non-root `nodejs` user, `dumb-init` for correct signal handling/PID 1 behavior, and a built-in health check.
 
 ```dockerfile
 # ============================================
@@ -177,6 +176,8 @@ CMD ["node", "index.js"]
 ### Docker Compose
 
 **Location:** `docker-compose.yml`
+
+For local development, Compose spins up the app alongside MongoDB, Redis, and the monitoring stack in one command.
 
 ```yaml
 version: "3"
@@ -234,7 +235,7 @@ volumes:
   redis-data:
 ```
 
-### Commands to Run
+### Commands
 
 ```powershell
 # Build and start all services
@@ -256,7 +257,9 @@ curl http://localhost:5000/api/health
 
 ---
 
-## ☁️ Step 2: Terraform Infrastructure (AWS)
+## ☁️ Infrastructure as Code (Terraform)
+
+I used Terraform to provision a small but realistic AWS footprint: a VPC with public/private subnets across two AZs, NAT gateway, security groups, an EC2 fallback host, and an S3 bucket — with EKS wired up as an option for a "real" managed Kubernetes target.
 
 ### Directory Structure
 
@@ -320,7 +323,7 @@ ec2_instance_type = "t3.micro"
 create_s3_bucket  = true
 ```
 
-### Commands to Run
+### Commands
 
 ```powershell
 cd infra/
@@ -340,14 +343,14 @@ terraform apply plan.out
 # View outputs
 terraform output
 
-# IMPORTANT: Destroy to avoid costs
+# IMPORTANT: Destroy to avoid ongoing AWS costs
 terraform destroy -auto-approve
 ```
 
 ### Resources Created
 
 | Resource | Description |
-|----------|-------------|
+|---|---|
 | **VPC** | 10.0.0.0/16 with DNS support |
 | **Subnets** | 2 public + 2 private across AZs |
 | **NAT Gateway** | For private subnet internet access |
@@ -355,7 +358,7 @@ terraform destroy -auto-approve
 | **EC2 Instance** | t3.micro with Docker pre-installed |
 | **S3 Bucket** | Versioned with lifecycle rules |
 
-### Sample Terraform Output
+### Sample Output
 
 ```
 vpc_id = "vpc-041c9b00ad7fd5d44"
@@ -366,22 +369,24 @@ nat_gateway_ips = ["54.255.137.225"]
 
 ---
 
-## 🔧 Step 4: Ansible Configuration Management
+## 🔧 Configuration Management (Ansible)
+
+Once the EC2 host exists, Ansible takes over: installs Docker/Node, pulls the repo, brings the stack up with Compose, and installs Node Exporter for metrics — so the whole configuration step is repeatable and idempotent rather than a manual SSH session.
 
 ### Directory Structure
 
 ```
 ansible/
 ├── ansible.cfg          # Ansible configuration
-├── hosts.ini            # Inventory file
-├── playbook.yaml        # Main playbook
-├── requirements.yaml    # Galaxy dependencies
-├── README.md            # Documentation
+├── hosts.ini             # Inventory file
+├── playbook.yaml         # Main playbook
+├── requirements.yaml     # Galaxy dependencies
+├── README.md             # Documentation
 ├── group_vars/
-│   ├── all.yaml         # Global variables
-│   └── vault.yaml       # Encrypted secrets
+│   ├── all.yaml          # Global variables
+│   └── vault.yaml        # Encrypted secrets
 └── templates/
-    └── env.j2           # Environment file template
+    └── env.j2            # Environment file template
 ```
 
 ### hosts.ini (Inventory)
@@ -411,7 +416,7 @@ app_user=nodejs
 - name: Configure Application Servers
   hosts: webservers
   become: true
-  
+
   tasks:
     # System Preparation
     - name: Install required packages
@@ -429,7 +434,7 @@ app_user=nodejs
     # Application Deployment
     - name: Clone repository
       git:
-        repo: "https://github.com/junaidrao47/labexamdevops.git"
+        repo: "https://github.com/junaidrao47/devops-cicd-terraform-eks.git"
         dest: /opt/node-redis-mongo
 
     - name: Install npm dependencies
@@ -450,7 +455,7 @@ app_user=nodejs
         dest: /opt/node_exporter
 ```
 
-### Commands to Run
+### Commands
 
 ```powershell
 cd ansible/
@@ -473,22 +478,24 @@ ansible-playbook playbook.yaml --ask-vault-pass
 
 ---
 
-## ☸️ Step 5: Kubernetes Deployment
+## ☸️ Kubernetes Deployment
+
+The app is deployed with liveness/readiness probes, resource requests/limits, a ResourceQuota-scoped namespace, and an HPA — the goal was to mirror what a real cluster deployment would look like, not just a bare `kubectl run`.
 
 ### Directory Structure
 
 ```
 k8s/
-├── namespace.yaml       # dev/prod namespaces + ResourceQuota
-├── configmap.yaml       # Application configuration
-├── secret.yaml          # Base64 encoded secrets
-├── deployment.yaml      # App deployment with probes
-├── service.yaml         # NodePort (30500) + ClusterIP
-├── mongo.yaml           # MongoDB StatefulSet + PVC
-├── redis.yaml           # Redis StatefulSet + PVC
-├── hpa.yaml             # Horizontal Pod Autoscaler
-├── ingress.yaml         # Ingress rules
-└── kustomization.yaml   # Kustomize configuration
+├── namespace.yaml        # dev/prod namespaces + ResourceQuota
+├── configmap.yaml        # Application configuration
+├── secret.yaml           # Base64 encoded secrets
+├── deployment.yaml       # App deployment with probes
+├── service.yaml           # NodePort (30500) + ClusterIP
+├── mongo.yaml             # MongoDB StatefulSet + PVC
+├── redis.yaml             # Redis StatefulSet + PVC
+├── hpa.yaml                # Horizontal Pod Autoscaler
+├── ingress.yaml             # Ingress rules
+└── kustomization.yaml       # Kustomize configuration
 ```
 
 ### namespace.yaml
@@ -533,7 +540,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: ghcr.io/junaidrao47/labexamdevops:latest
+        image: ghcr.io/junaidrao47/devops-cicd-terraform-eks:latest
         ports:
         - containerPort: 5000
         resources:
@@ -575,7 +582,7 @@ spec:
     nodePort: 30500
 ```
 
-### Commands to Run
+### Commands
 
 ```powershell
 # Start Minikube
@@ -617,9 +624,11 @@ service/node-redis-mongo-service   NodePort    5000:30500/TCP
 
 ---
 
-## 🚀 Step 6: CI/CD Pipeline
+## 🚀 CI/CD Pipeline
 
-### Pipeline Visualization
+A GitHub Actions pipeline runs lint/tests, a Trivy security scan, a multi-platform Docker build & push, Terraform plan validation, Ansible lint, smoke tests against the running app, and finally a Kubernetes deploy — all gated so a failure anywhere upstream stops the deploy.
+
+### Pipeline Flow
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -632,7 +641,7 @@ service/node-redis-mongo-service   NodePort    5000:30500/TCP
         │                                        │                │
         ▼                                        ▼                ▼
 ┌──────────────┐                         ┌──────────────┐  ┌──────────────┐
-│  🏗️ Terraform │                         │  🔥 Smoke    │  │  📋 Ansible  │
+│  🏗️ Terraform │                        │  🔥 Smoke    │  │  📋 Ansible  │
 │     Plan     │                         │    Tests     │  │     Lint     │
 └──────────────┘                         └──────────────┘  └──────────────┘
         │                                        │                │
@@ -651,8 +660,8 @@ service/node-redis-mongo-service   NodePort    5000:30500/TCP
 
 ### Pipeline Stages
 
-| Stage | Description | Time |
-|-------|-------------|------|
+| Stage | Description | Typical Time |
+|---|---|---|
 | 🧪 **Lint & Test** | ESLint + Jest tests | 31s |
 | 🔒 **Security Scan** | Trivy vulnerability scanner | 18s |
 | 🐳 **Build & Push** | Docker multi-platform build | 2m 57s |
@@ -662,16 +671,17 @@ service/node-redis-mongo-service   NodePort    5000:30500/TCP
 | 🚀 **Deploy to K8s** | Kubernetes deployment | 11s |
 | 📊 **Summary** | Pipeline results | 2s |
 
-### View Pipeline
+### View Pipeline Runs
 
-- **URL:** https://github.com/junaidrao47/labexamdevops/actions
-- **Status:** All stages should show ✅ green checkmarks
+- **Actions tab:** https://github.com/junaidrao47/devops-cicd-terraform-eks/actions
 
 ---
 
-## 📊 Step 7: Monitoring
+## 📊 Monitoring
 
-### Start Monitoring Stack
+Prometheus scrapes metrics and Grafana visualizes them — this was the piece that made the project feel "real" rather than just deployed and forgotten, since I could actually watch resource usage and service health over time.
+
+### Start the Monitoring Stack
 
 ```powershell
 docker-compose up -d prometheus grafana
@@ -680,31 +690,17 @@ docker-compose up -d prometheus grafana
 ### Access URLs
 
 | Service | URL | Credentials |
-|---------|-----|-------------|
+|---|---|---|
 | **Prometheus** | http://localhost:9090 | - |
 | **Grafana** | http://localhost:3000 | admin / admin |
 
-### Grafana Setup Guide
+### Grafana Setup
 
-#### 1. Login to Grafana
-- Open http://localhost:3000
-- Username: `admin`
-- Password: `admin`
+1. Open http://localhost:3000 and log in with `admin` / `admin`.
+2. Go to **⚙️ Settings → Data Sources → Add data source → Prometheus**, set the URL to `http://prometheus:9090`, then **Save & Test**.
+3. Go to **+ → Import**, enter dashboard ID `1860` (Node Exporter Full), select the Prometheus data source, and import.
 
-#### 2. Add Prometheus Data Source
-1. Click **⚙️ Settings** → **Data Sources**
-2. Click **Add data source**
-3. Select **Prometheus**
-4. Set URL: `http://prometheus:9090`
-5. Click **Save & Test** → Should show ✅
-
-#### 3. Import Dashboard
-1. Click **+** → **Import**
-2. Enter Dashboard ID: `1860` (Node Exporter Full)
-3. Select Prometheus data source
-4. Click **Import**
-
-### Prometheus Queries
+### Useful Prometheus Queries
 
 ```promql
 # Check running services
@@ -717,35 +713,15 @@ rate(process_cpu_seconds_total[5m])
 process_resident_memory_bytes / 1024 / 1024
 ```
 
-### Screenshots to Capture
-
-1. **Prometheus Targets** - http://localhost:9090/targets
-2. **Prometheus Graph** - Run query `up`
-3. **Grafana Dashboard** - Imported dashboard
-4. **Grafana Data Source** - Prometheus connected
-
 ---
 
-## 📖 Step 8: Documentation
+## 🚀 Quick Start
 
-### Files Created/Updated
-
-| File | Purpose |
-|------|---------|
-| `README.md` | This comprehensive guide |
-| `devops_report.md` | Technical architecture report |
-| `infra/README.md` | Terraform documentation |
-| `ansible/README.md` | Ansible documentation |
-
----
-
-## 🚀 Quick Start Guide
-
-### Option 1: Docker Compose (Quickest)
+### Option 1: Docker Compose (fastest way to try it)
 
 ```powershell
-git clone https://github.com/junaidrao47/labexamdevops.git
-cd labexamdevops/node-redis-mongo
+git clone https://github.com/junaidrao47/devops-cicd-terraform-eks.git
+cd devops-cicd-terraform-eks
 docker-compose up --build -d
 curl http://localhost:5000/api/health
 ```
@@ -764,7 +740,7 @@ minikube service node-redis-mongo-service -n dev
 cd infra/
 terraform init
 terraform apply
-# After testing:
+# After testing, tear it down to avoid charges:
 terraform destroy
 ```
 
@@ -809,7 +785,7 @@ curl -X POST http://localhost:5000/api/todos \
 
 ## 🔧 Troubleshooting
 
-### Docker Issues
+### Docker
 
 ```powershell
 docker-compose logs -f server
@@ -817,7 +793,7 @@ docker-compose restart
 docker-compose down -v && docker-compose up --build
 ```
 
-### Kubernetes Issues
+### Kubernetes
 
 ```powershell
 kubectl get pods -n dev
@@ -825,7 +801,7 @@ kubectl describe pod <pod-name> -n dev
 kubectl logs <pod-name> -n dev
 ```
 
-### Terraform Issues
+### Terraform
 
 ```powershell
 terraform refresh
@@ -835,15 +811,15 @@ rm -rf .terraform && terraform init
 
 ---
 
-## 📝 Submission Checklist
+## 🧠 What I Learned / Next Steps
 
-- [x] **Step 1:** Dockerfile with multistage build
-- [x] **Step 2:** Terraform infrastructure (VPC, EC2, S3)
-- [x] **Step 4:** Ansible playbook and inventory
-- [x] **Step 5:** Kubernetes manifests (all files)
-- [x] **Step 6:** CI/CD pipeline (7 stages)
-- [x] **Step 7:** Monitoring (Prometheus + Grafana)
-- [x] **Step 8:** Documentation (README + report)
+Building this end to end reinforced a few things: how much of "DevOps" is really about repeatability (idempotent Ansible, declarative Terraform, versioned manifests) rather than any single tool, and how much a good CI/CD pipeline changes your confidence in shipping.
+
+Possible next steps I'm considering:
+- Migrating the EC2 fallback path fully onto EKS and dropping the fallback
+- Adding centralized logging (e.g., Loki or the EFK stack)
+- Introducing GitOps (ArgoCD/Flux) instead of the direct `kubectl apply` deploy step
+- Adding alerting rules in Prometheus/Alertmanager tied to the Grafana dashboards
 
 ---
 
@@ -851,14 +827,8 @@ rm -rf .terraform && terraform init
 
 **Junaid Rao**
 - GitHub: [@junaidrao47](https://github.com/junaidrao47)
-- Repository: [labexamdevops](https://github.com/junaidrao47/labexamdevops)
-
----
+- Repository: [devops-cicd-terraform-eks](https://github.com/junaidrao47/devops-cicd-terraform-eks)
 
 ## 📄 License
 
 MIT License
-
----
-
-**Total Marks: 50** | **All Steps Completed ✅**
